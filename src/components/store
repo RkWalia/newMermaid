@@ -1,0 +1,36 @@
+import { create } from 'zustand';
+import { generateMermaidCode, parseMermaidCode } from '../utils/mermaidParser';
+
+const isTypingRef = { current: false };
+
+export const useDiagramStore = create((set, get) => ({
+  shapes: [],
+  connections: [],
+  mermaidCode: 'graph TD\n  A[Start] --> B[Process]\n  B --> C[End]',
+
+  setShapes: (shapes) => set({ shapes }),
+  setConnections: (connections) => set({ connections }),
+
+  handleCodeChange: (newCode) => {
+    set({ mermaidCode: newCode });
+    isTypingRef.current = true;
+
+    try {
+      const parsed = parseMermaidCode(newCode);
+      set({ shapes: parsed.shapes, connections: parsed.connections });
+    } catch (err) {
+      console.warn('Failed to parse Mermaid code:', err);
+    } finally {
+      setTimeout(() => {
+        isTypingRef.current = false;
+      }, 1000);
+    }
+  },
+
+  updateMermaidCodeIfNotTyping: () => {
+    if (!isTypingRef.current) {
+      const code = generateMermaidCode(get().shapes, get().connections);
+      set({ mermaidCode: code });
+    }
+  }
+}));
